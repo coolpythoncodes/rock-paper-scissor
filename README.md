@@ -14,4 +14,4 @@
 - Docker
 
 ## Note
-Reach is designed to work on POSIX systems with make, Docker, and Docker Compose installed. Read the (docs)[https://docs.reach.sh/quickstart/] to get started
+Reach is designed to work on POSIX systems with make, Docker, and Docker Compose installed. Read the [docs](https://docs.reach.sh/quickstart/) to get started
