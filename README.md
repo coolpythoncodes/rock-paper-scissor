@@ -1,4 +1,4 @@
-## A Rock, Paper, Scissor Dapp Game
+## A Rock, Paper, Scissors Dapp Game
 
 ## 🖇 How to Start
 
