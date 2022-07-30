@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { useStoreContext } from '../context/store'
 import * as backend from '../../build/index.main.mjs';
-import usePlayer from '../components/usePlayer';
-// import Player from '../components/Player';
+
+
+const handToInt = { 'ROCK': 0, 'PAPER': 1, 'SCISSORS': 2 };
+const inToOutcome = ['Bob wins!', 'Draw!', 'Alice wins!'];
 
 const DeployerWrapper = ({ content }) => {
     return (
         <div className="Deployer">
             <h2>Deployer (Alice)</h2>
             {content}
-            {/* <Player/> */}
         </div>
 
     )
@@ -23,7 +24,7 @@ const SetWager = ({ setState }) => {
     const setWager = (_wager) => {
         setState(prev => ({ ...prev, view: 'Deploy', wager: _wager }))
     }
-    
+
     return (
         <div>
             <input type="number" placeholder={defaults.defaultWagerAmt} onChange={handleTextChange} /> {defaults.standardUnit}
@@ -33,15 +34,9 @@ const SetWager = ({ setState }) => {
     )
 }
 
-const Deploy = ({ wager, setState }) => {
+const Deploy = ({ wager, setState, state }) => {
     const { defaults, acc, reach } = useStoreContext()
-    const [
-        getHand,
-        random,
-        seeOutcome,
-        informTimeout,
-        playHand
-    ] = usePlayer()
+
 
     const deploy = async () => {
         const ctc = acc.contract(backend)
@@ -53,13 +48,35 @@ const Deploy = ({ wager, setState }) => {
         const interactObject = {
             wager: reach.parseCurrency(wager),
             deadline: { ETH: 10, ALGO: 100, CFX: 1000 }[reach.connector],
-            getHand,
-            random,
-            seeOutcome,
-            informTimeout,
-            playHand
+            getHand: async () => {
+                const hand = await new Promise(resolveHandP => {
+                    setState(prev => ({
+                        ...prev,
+                        view: 'GetHand',
+                        playable: true,
+                        resolveHandP
+                    }))
+                })
+                setState(prev => ({
+                    ...prev,
+                    view: 'WaitingForResult',
+                    hand
+                }))
+                return handToInt[hand]
+            },
+            random: () => {
+                return reach.hasRandom.random();
+            },
+            playHand: (hand) => {
+                state.resolveHandP(hand)
+            },
+            seeOutcome: (i) => setState(prev => ({
+                ...prev,
+                view: 'Done',
+                outcome: inToOutcome[i]
+            })),
+            informTimeout: () => setState(prev => ({ ...prev, view: 'Timeout' })),
         }
-        console.log('interactObject',interactObject)
         backend.Alice(ctc, interactObject)
         const ctcInfoStr = JSON.stringify(await ctc.getInfo(), null, 2);
         setState(prev => ({ ...prev, view: 'WaitingForAttacher', ctcInfoStr }))
@@ -108,64 +125,11 @@ const WaitingForAttacher = ({ ctcInfoStr }) => {
     )
 }
 
-// const handToInt = {'ROCK': 0, 'PAPER': 1, 'SCISSORS': 2};
-// const inToOutcome = ['Bob wins!', 'Draw!', 'Alice wins!'];
-
-const GetHand = () => {
-    const [hand, playable] = usePlayer();
-    return (
-        <div>
-            {hand ? 'It was a draw! Pick again.' : ''}
-            <br />
-            {!playable ? 'Please wait' : ''}
-            <br />
-            <button>Rock</button>
-            <button>Rock</button>
-            <button>Rock</button>
-        </div>
-    )
-}
-
-const WaitingForResult = () => {
-    return (
-        <div>
-            Waiting for results...
-        </div>
-    )
-}
-
-const Done = () => {
-    return (
-        <div>
-            Thank you for playing. The outcome of this game was: 
-            <br />
-        </div>
-    )
-}
-
-const Timeout = () => {
-    return <div>There's been a timeout. (Someone took too long.)</div>;
-}
-
-// export { 
-//     GetHand, 
-//     WaitingForResult,
-//     Done,
-//     Timeout
-// };
-
-
 export {
     DeployerWrapper,
     SetWager,
     Deploy,
     Deploying,
     WaitingForAttacher,
-    // new
-    GetHand, 
-    WaitingForResult,
-    Done,
-    Timeout
-
 }
 

@@ -1,7 +1,9 @@
 import { useRef, useState } from "react"
 import { useStoreContext } from "../context/store"
 import * as backend from '../../build/index.main.mjs';
-import usePlayer, { Player } from "../components/usePlayer";
+
+const handToInt = { 'ROCK': 0, 'PAPER': 1, 'SCISSORS': 2 };
+const inToOutcome = ['Bob wins!', 'Draw!', 'Alice wins!'];
 
 const AttacherWrapper = ({ content }) => {
     return (
@@ -12,15 +14,10 @@ const AttacherWrapper = ({ content }) => {
     )
 }
 
-const Attach = ({ setState }) => {
+const Attach = ({ setState, state }) => {
     const { acc, reach } = useStoreContext()
     const [ctcInfoStr, setCtcInfoStr] = useState('')
-    const [
-        getHand,
-        random,
-        seeOutcome,
-        informTimeout
-    ] = usePlayer()
+
 
     const textAreaRef = useRef()
     const handleTextChange = (e) => setCtcInfoStr(e.target.value)
@@ -30,12 +27,35 @@ const Attach = ({ setState }) => {
         const interactObject = {
             info,
             acceptWager,
-            getHand,
-            random,
-            seeOutcome,
-            informTimeout
+            getHand: async () => {
+                const hand = await new Promise(resolveHandP => {
+                    setState(prev => ({
+                        ...prev,
+                        view: 'GetHand',
+                        playable: true,
+                        resolveHandP
+                    }))
+                })
+                setState(prev => ({
+                    ...prev,
+                    view: 'WaitingForResult',
+                    hand
+                }))
+                return handToInt[hand]
+            },
+            random: () => {
+                return reach.hasRandom.random();
+            },
+            playHand: (hand) => {
+                state.resolveHandP(hand)
+            },
+            seeOutcome: (i) => setState(prev => ({
+                ...prev,
+                view: 'Done',
+                outcome: inToOutcome[i]
+            })),
+            informTimeout: () => setState(prev => ({ ...prev, view: 'Timeout' }))
         }
-        console.log('interactObject',interactObject)
         setState(prev => ({
             ...prev,
             appView: 'AttacherViews',
@@ -54,7 +74,6 @@ const Attach = ({ setState }) => {
                 wager,
                 resolveAcceptedP
             }))
-            console.log('acceptWager after',wager)
         })
     }
     return (
@@ -71,7 +90,7 @@ const Attach = ({ setState }) => {
             </textarea>
             <br />
             <button
-                disabled={!ctcInfoStr} 
+                disabled={!ctcInfoStr}
                 onClick={() => attach(ctcInfoStr)}
             >
                 Attach
@@ -95,7 +114,6 @@ const AcceptTerms = ({ wager, resolveAcceptedP, setState, state }) => {
     const termsAccepted = () => {
         setIsDisabled(true)
         resolveAcceptedP()
-        console.log('resolveAcceptedP after', resolveAcceptedP)
         setState(prev => ({
             ...prev,
             view: "WaitingForTurn"
@@ -124,53 +142,10 @@ const WaitingForTurn = () => {
     )
 }
 
-
-// new
-const GetHand = () => {
-    const [hand, playable] = usePlayer();
-    return (
-        <div>
-            {hand ? 'It was a draw! Pick again.' : ''}
-            <br />
-            {!playable ? 'Please wait' : ''}
-            <br />
-            <button>Rock</button>
-            <button>Rock</button>
-            <button>Rock</button>
-        </div>
-    )
-}
-
-const WaitingForResult = () => {
-    return (
-        <div>
-            Waiting for results...
-        </div>
-    )
-}
-
-const Done = () => {
-    return (
-        <div>
-            Thank you for playing. The outcome of this game was:
-            <br />
-        </div>
-    )
-}
-
-const Timeout = () => {
-    return <div>There's been a timeout. (Someone took too long.)</div>;
-}
-
 export {
     AttacherWrapper,
     Attach,
     Attaching,
     AcceptTerms,
     WaitingForTurn,
-    // new
-    GetHand,
-    WaitingForResult,
-    Done,
-    Timeout
 }

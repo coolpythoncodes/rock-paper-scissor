@@ -1,19 +1,14 @@
-// const handToInt = {'ROCK': 0, 'PAPER': 1, 'SCISSORS': 2};
-// const inToOutcome = ['Bob wins!', 'Draw!', 'Alice wins!'];
-
-import usePlayer from "../components/usePlayer";
-
-const GetHand = () => {
-    const [hand, playable] = usePlayer();
+const GetHand = ({ playable, resolveHandP, hand }) => {
+    const playHand = (hand) => resolveHandP(hand)
     return (
         <div>
             {hand ? 'It was a draw! Pick again.' : ''}
             <br />
             {!playable ? 'Please wait' : ''}
             <br />
-            <button>Rock</button>
-            <button>Rock</button>
-            <button>Rock</button>
+            <button disabled={!playable} onClick={() => playHand('ROCK')}>Rock</button>
+            <button disabled={!playable} onClick={() => playHand('PAPER')}>Paper</button>
+            <button disabled={!playable} onClick={() => playHand('SCISSORS')}>Scissors</button>
         </div>
     )
 }
@@ -26,11 +21,11 @@ const WaitingForResult = () => {
     )
 }
 
-const Done = () => {
+const Done = ({ outcome }) => {
     return (
         <div>
-            Thank you for playing. The outcome of this game was: 
-            <br />
+            Thank you for playing. The outcome of this game was:
+            <br />{outcome || 'Unknown'}
         </div>
     )
 }
@@ -39,8 +34,8 @@ const Timeout = () => {
     return <div>There's been a timeout. (Someone took too long.)</div>;
 }
 
-export { 
-    GetHand, 
+export {
+    GetHand,
     WaitingForResult,
     Done,
     Timeout
